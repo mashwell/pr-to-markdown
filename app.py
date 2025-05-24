@@ -1,7 +1,6 @@
 import streamlit as st
 import re
 from github import Github
-from datetime import datetime
 
 st.title("GitHub PR to Markdown Converter")
 
@@ -20,6 +19,9 @@ pr_url = st.text_input(
     "Enter the GitHub PR URL",
     placeholder="https://github.com/owner/repo/pull/123",
 )
+
+# Checkbox for including file diffs
+include_diffs = st.checkbox("Include file diffs in Markdown", value=True)
 
 if pr_url:
     # Parse the URL to extract owner, repository name, and PR number.
@@ -45,6 +47,9 @@ if pr_url:
 
             # PR Title and basic info.
             md_lines.append(f"# {pr.title}\n")
+            md_lines.append(f"**URL:** {pr.html_url}")
+            status = "merged" if pr.merged and pr.state == "closed" else pr.state
+            md_lines.append(f"**Status:** {status}")
             md_lines.append(f"**Author:** {pr.user.login}  ")
             md_lines.append(
                 f"**Created:** {pr.created_at.strftime('%Y-%m-%d %H:%M:%S')}\n"
@@ -110,12 +115,13 @@ if pr_url:
             if files:
                 for file in files:
                     md_lines.append(f"### {file.filename}\n")
-                    if file.patch:
-                        md_lines.append("```diff")
-                        md_lines.append(file.patch)
-                        md_lines.append("```")
-                    else:
-                        md_lines.append("_No diff available for this file._\n")
+                    if include_diffs:  # Check the state of the checkbox
+                        if file.patch:
+                            md_lines.append("```diff")
+                            md_lines.append(file.patch)
+                            md_lines.append("```")
+                        else:
+                            md_lines.append("_No diff available for this file._\n")
             else:
                 md_lines.append("_No file changes available._\n")
 
